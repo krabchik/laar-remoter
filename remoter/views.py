@@ -171,10 +171,8 @@ def configure_devices():
                     saved_data['ips'][ip]['connect_type'] = device['connect_type']
                 if device['device_name']:
                     saved_data['ips'][ip]['device_name'] = device['device_name']
-                if device['connect_type']:
-                    saved_data['ips'][ip]['connect_type'] = device['connect_type']
-                if device['connect_type'] == 'ssh' and device['ssh_use_key']:
-                    saved_data['ips'][ip]['ssh_use_key'] = device['ssh_use_key']
+                if saved_data['ips'][ip]['connect_type'] == 'ssh':
+                    saved_data['ips'][ip]['ssh_use_key'] = bool(device['ssh_use_key'])
                 if device['ssh_port']:
                     saved_data['ips'][ip]['ssh_port'] = device['ssh_port']
                 else:

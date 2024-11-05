@@ -181,6 +181,11 @@
                                     <div class="field">
                                         {{ form.devices[loop.index0].ssh_key.label }} {{ form.devices[loop.index0].ssh_key }}
                                     </div>
+                                    {% if device.ssh_key %}
+                                        <div class="field">
+                                            Saved SSH key: {{ device.ssh_key }}
+                                        </div>
+                                    {% endif %}
                                 {% endif %}
                             </fieldset>
                         </div>
