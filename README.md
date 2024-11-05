@@ -1,3 +1,8 @@
+Запуск в Docker
+`docker build -t laar-app-remoter .`
+`docker run -p 5000:5000 laar-app-remoter`
+
+Запуск локально
 Подготовка
 `python -m venv venv`
 `pip install -r requirements.txt`
