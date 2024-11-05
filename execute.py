@@ -146,6 +146,35 @@ def start_process_paexec(remote_ip, username, password, command, interactive=Fal
 
 
 def get_connection(host: str, username: str, password: str = None, ssh_key: str = None, port: int = 22, ssh_use_key: bool = False):
+    """
+    Establishes a connection to a remote host.
+
+    Parameters
+    ----------
+    host : str
+        The hostname or IP address of the remote host.
+    username : str
+        The username to use for the connection.
+    password : str, optional
+        The password to use for password authentication.
+    ssh_key : str, optional
+        The path to the SSH key to use for key authentication.
+    port : int, optional
+        The port to use for the connection. Defaults to 22.
+    ssh_use_key : bool, optional
+        Whether to use SSH key authentication. Defaults to False.
+
+    Returns
+    -------
+    conn : Connection
+        A Connection object representing the established connection.
+
+    Raises
+    ------
+    ValueError
+        If either password or SSH key authentication fails, or if no valid
+        connection can be established.
+    """
     if not port:
         port = 22
     print(ssh_use_key, password, ssh_key)
@@ -179,6 +208,25 @@ def get_connection(host: str, username: str, password: str = None, ssh_key: str 
 # powershell (Start-Process "notepad.exe" -PassThru).id
 
 def get_remote_os_and_device_name(conn: Connection):
+    """
+    Establishes a connection to a remote host and determines the remote OS and device name.
+
+    Parameters
+    ----------
+    conn : Connection
+        A Connection object representing the established connection.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the remote OS type (str) and device name (str).
+
+    Raises
+    ------
+    ValueError
+        If the connection cannot be established, or if the remote OS type
+        cannot be determined.
+    """
     ssh_proc = None
     os_type = None
     # Get OS type
@@ -217,6 +265,29 @@ def get_remote_os_and_device_name(conn: Connection):
 
 
 def start_process_ssh(conn: Connection, command: str, os_type):
+    """
+    Starts a process on a remote system via SSH.
+
+    Parameters
+    ----------
+    conn : Connection
+        A Connection object representing the established connection.
+    command : str
+        The command to execute on the remote system.
+    os_type : str
+        The type of remote OS. Should be one of 'Linux', 'Windows', or 'MacOS'.
+
+    Returns
+    -------
+    str
+        The PID of the newly started process.
+
+    Raises
+    ------
+    ValueError
+        If the connection cannot be established, or if the remote process
+        cannot be started.
+    """
     ssh_command = None
     if os_type == 'Windows':
         user_response = conn.run('query user', hide=True, warn=True, encoding='cp866')
@@ -272,17 +343,27 @@ def start_process_ssh(conn: Connection, command: str, os_type):
 
 def start_process(command: str, saved_data: dict, ip: str) -> int:
     """
-    Start a process on a remote device and return its PID.
+    Starts a process on a remote system via SSH or PAExec.
 
-    :param command: A command to start a process.
-    :type command: str
-    :param saved_data: A dictionary containing information about remote devices.
-    :type saved_data: dict
-    :param ip: An IP address of a remote device.
-    :type ip: str
-    :return: A PID of the started process.
-    :rtype: int
-    :raises ValueError: If the device is not configured or if the connection type is unknown.
+    Parameters
+    ----------
+    command : str
+        The command to execute on the remote system.
+    saved_data : dict
+        A dictionary with saved data about the device.
+    ip : str
+        The IP address of the remote system.
+
+    Returns
+    -------
+    int
+        The PID of the newly started process.
+
+    Raises
+    ------
+    ValueError
+        If the connection cannot be established, or if the remote process
+        cannot be started.
     """
     os_type = saved_data['ips'][ip]['os_type']
     username = saved_data['ips'][ip]['username']
@@ -379,6 +460,25 @@ def kill_process_paexec(remote_ip, username, password, pid):
 
 
 def shutdown(ip, saved_data, reboot=False):
+    """
+    Shutdowns a remote device.
+
+    Parameters
+    ----------
+    ip : str
+        IP address of the device.
+    saved_data : dict
+        Saved data of all devices.
+    reboot : bool
+        Whether to reboot or shutdown the device.
+
+    Raises
+    ------
+    ValueError
+        If the device is not configured, or there is an error shutting down
+        the device.
+
+    """
     username = saved_data['ips'][ip]['username']
     password = saved_data['ips'][ip]['password']
     ssh_key = saved_data['ips'][ip]['ssh_key']
