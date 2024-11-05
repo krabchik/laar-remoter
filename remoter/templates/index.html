@@ -89,6 +89,10 @@
             margin-right: 10px;
         }
 
+        .pc-info {
+            cursor: pointer;
+        }
+
         .pc-list .pc-info {
             display: flex;
             flex-direction: column;
@@ -185,27 +189,29 @@
                     {% else %}
                         {% for pc in context.pc_list %}
                             <li>
-                                <input type="checkbox" name="ip_{{ pc }}" {% if pc in context.selected_ips %}checked{% endif %}>
+                                <input type="checkbox" name="ip_{{ pc }}" id="ip_{{ pc }}" {% if pc in context.selected_ips %}checked{% endif %}>
                                 {% if context.pc_list[pc]['is_online'] %}
                                     <span class="online green" id="ip_{{ pc }}_indicator"></span>
                                 {% else %}
                                     <span class="online red" id="ip_{{ pc }}_indicator"></span>
                                 {% endif %}
-                                <div class="pc-info">
-                                    <span class="ip-address">
-                                        {% if context.pc_list[pc]['os_type'] == 'Windows' %}
-                                            <i class="fa-brands fa-windows"></i>
-                                        {% elif context.pc_list[pc]['os_type'] == 'Linux' %}
-                                            <i class="fa-brands fa-linux"></i>
-                                        {% elif context.pc_list[pc]['os_type'] == 'MacOS' %}
-                                            <i class="fa-brands fa-apple"></i>
+                                <label for="ip_{{ pc }}">
+                                    <div class="pc-info">
+                                        <span class="ip-address">
+                                            {% if context.pc_list[pc]['os_type'] == 'Windows' %}
+                                                <i class="fa-brands fa-windows"></i>
+                                            {% elif context.pc_list[pc]['os_type'] == 'Linux' %}
+                                                <i class="fa-brands fa-linux"></i>
+                                            {% elif context.pc_list[pc]['os_type'] == 'MacOS' %}
+                                                <i class="fa-brands fa-apple"></i>
+                                            {% endif %}
+                                            {{ pc }}
+                                        </span>
+                                        {% if context.pc_list[pc]['device_name'] %}
+                                            <span class="pc-name">{{ context.pc_list[pc]['device_name'] }}</span>
                                         {% endif %}
-                                        {{ pc }}
-                                    </span>
-                                    {% if context.pc_list[pc]['device_name'] %}
-                                        <span class="pc-name">{{ context.pc_list[pc]['device_name'] }}</span>
-                                    {% endif %}
-                                </div>
+                                    </div>
+                                </label>
                             </li>
                         {% endfor %}
                     {% endif %}
@@ -289,7 +295,6 @@
 
         var status_reload_btn = document.getElementById("status_reload");
         status_reload_btn.onclick = async function() {
-            console.log(1);
             let checked_boxes = [...document.querySelectorAll('.pc-list input:checked')];
             let checked_ips = checked_boxes.map(el => {return 'ips=' + el.name.substring(3);});
             if (checked_ips.length == 0) {
