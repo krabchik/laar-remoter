@@ -27,7 +27,7 @@ def is_ip_online(ip: str) -> bool:
     if not is_ip_valid(ip):
         print('invalid ip')
         return False
-    proc = subprocess.run(f'ping {ip} -n 2 > {file_name}', shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.run(f'ping {ip} -c 2 > {file_name}', shell=True, stdout=subprocess.PIPE)
     if proc.returncode:
         return False
     online = False
@@ -46,7 +46,7 @@ async def async_is_ip_online(ip: str) -> bool:
         print('invalid ip')
         return False
     proc = await asyncio.create_subprocess_shell(
-        f'ping {ip} -n 2 > {file_name}',
+        f'ping {ip} -c 2 > {file_name}',
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE
     )
@@ -65,7 +65,7 @@ async def async_is_ip_online(ip: str) -> bool:
 
 def get_mac(ip_address):
     # Пингуем устройство, чтобы обновить ARP таблицу
-    ping_response = subprocess.run(f"ping -n 1 {ip_address}", shell=True, stdout=subprocess.PIPE).returncode
+    ping_response = subprocess.run(f"ping -c 1 {ip_address}", shell=True, stdout=subprocess.PIPE).returncode
 
     if ping_response == 0:
         # Используем команду arp для получения MAC-адреса
