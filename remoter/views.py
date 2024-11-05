@@ -12,7 +12,7 @@ from execute import is_ip_online, wake_on_lan, \
 
 
 @app.route('/', methods=['POST', 'GET'])
-def index():
+async def index():
     errors = []
     context = {}
     saved_data = get_data_dict()
@@ -43,6 +43,8 @@ def index():
             if errors:
                 context['selected_ips'] = selected_ips
                 return render_template('index.html', context=context, form_run=form_run)
+            print('selected ips:', selected_ips)
+
             if request.form['btn'] == 'Delete Selected':
                 print('deleting ips:', selected_ips)
                 for ip in selected_ips:
@@ -53,50 +55,65 @@ def index():
                 print('waking', selected_ips)
                 for ip in selected_ips:
                     wake_on_lan(ip)
-            elif request.form['btn'] == 'Start':
-                if not request.form['command']:
-                    errors.append('Укажите команду')
-                else:
+            else:
+                online_check_tasks = [async_is_ip_online(ip) for ip in selected_ips]
+                online_check_results = await asyncio.gather(*online_check_tasks)
+                online_ips = []
+                for ip in selected_ips:
+                    ip_is_online = online_check_results[selected_ips.index(ip)]
+                    if ip_is_online:
+                        online_ips.append(ip)
+                    else:
+                        errors.append(f'{ip} не в сети')
+
+                print('online ips:', online_ips)
+                selected_ips = online_ips
+                context['selected_ips'] = selected_ips
+
+                if request.form['btn'] == 'Start':
+                    if not request.form['command']:
+                        errors.append('Укажите команду')
+                    else:
+                        for ip in selected_ips:
+                            if not is_ip_online(ip):
+                                continue
+                            pid = None
+                            command = request.form['command']
+                            try:
+                                pid = start_process(command, saved_data, ip)
+                            except Exception as e:
+                                print(e)
+                                errors.append(f'{ip}: {e}')
+                            else:
+                                time_obj = time.localtime()  # получить struct_time
+                                time_string = time.strftime('%d.%m.%Y %H:%M:%S', time_obj)
+                                saved_data['tasks'].append({'ip': ip, 'command': request.form['command'],
+                                                            'pid': pid, 'time': time_string, 'type': 'run'})
+                        save_data(saved_data)
+                elif request.form['btn'] == 'Shutdown':
+                    print('shutting down')
                     for ip in selected_ips:
                         if not is_ip_online(ip):
+                            print('not online:', ip)
+                            errors.append(f'{ip}: not online')
                             continue
-                        pid = None
-                        command = request.form['command']
                         try:
-                            pid = start_process(command, saved_data, ip)
+                            shutdown(ip, saved_data)
                         except Exception as e:
                             print(e)
                             errors.append(f'{ip}: {e}')
-                        else:
-                            time_obj = time.localtime()  # получить struct_time
-                            time_string = time.strftime('%d.%m.%Y %H:%M:%S', time_obj)
-                            saved_data['tasks'].append({'ip': ip, 'command': request.form['command'],
-                                                        'pid': pid, 'time': time_string, 'type': 'run'})
-                    save_data(saved_data)
-            elif request.form['btn'] == 'Shutdown':
-                print('shutting down')
-                for ip in selected_ips:
-                    if not is_ip_online(ip):
-                        print('not online:', ip)
-                        errors.append(f'{ip}: not online')
-                        continue
-                    try:
-                        shutdown(ip, saved_data)
-                    except Exception as e:
-                        print(e)
-                        errors.append(f'{ip}: {e}')
-            elif request.form['btn'] == 'Reboot':
-                print('rebooting')
-                for ip in selected_ips:
-                    if not is_ip_online(ip):
-                        print(f'{ip} not online')
-                        errors.append(f'{ip}: not online')
-                        continue
-                    try:
-                        print(shutdown(ip, saved_data, reboot=True))
-                    except Exception as e:
-                        print(e)
-                        errors.append(f'{ip}: {e}')
+                elif request.form['btn'] == 'Reboot':
+                    print('rebooting')
+                    for ip in selected_ips:
+                        if not is_ip_online(ip):
+                            print(f'{ip} not online')
+                            errors.append(f'{ip}: not online')
+                            continue
+                        try:
+                            print(shutdown(ip, saved_data, reboot=True))
+                        except Exception as e:
+                            print(e)
+                            errors.append(f'{ip}: {e}')
         elif request.form['form_type'] == 'clear_tasks' and request.form['btn'] == 'Clear':
             saved_data['tasks'] = []
             context['tasks'] = []
@@ -109,6 +126,7 @@ def index():
 @app.route('/api/fetch-online')
 async def fetch_online():
     ip_list = request.args.getlist('ips')
+    print('fetching ips', ip_list)
     online_check_tasks = [async_is_ip_online(ip) for ip in ip_list]
     online_check_results = await asyncio.gather(*online_check_tasks)
     saved_data = get_data_dict()
