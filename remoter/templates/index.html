@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remoter</title>
+    <script src="https://kit.fontawesome.com/c50d3eb7f8.js" crossorigin="anonymous"></script>
+    <style>
+        body {
+            background-color: #1b1b1b;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            width: 600px;
+            margin: 20px auto;
+            gap: 10px;
+            padding: 20px;
+            background-color: #252525;
+            border-radius: 5px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .header select, .header button {
+            background-color: #353535;
+            color: #ffffff;
+            border: 1px solid #444;
+            border-radius: 3px;
+            padding: 5px 10px;
+            margin-right: 5px;
+        }
+
+        .header input {
+            background-color: #353535;
+            color: #ffffff;
+            border: 1px solid #444;
+            border-radius: 3px;
+            padding: 5px;
+            width: 130px;
+            margin-right: 5px;
+        }
+
+        .pc-list {
+            display: flex;
+            flex-direction: row;
+            background-color: #2b2b2b;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            justify-content: space-between;
+        }
+
+        .pc-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .pc-list li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .pc-list li .online {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .pc-list li span.green {
+            background-color: #4CAF50;
+        }
+
+        .pc-list li span.red {
+            background-color: #f44336;
+        }
+
+        .pc-list li input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        .pc-list .pc-info {
+            display: flex;
+            flex-direction: column;
+            margin: 3px;
+        }
+
+        .pc-list .pc-info .ip-address {
+            font-size: 20px;
+            color: #ffffff;
+        }
+
+        .pc-list .pc-info .pc-name {
+            font-size: 14px;
+            color: #aaaaaa;
+        }
+
+        .buttons-container {
+            display: inlinde-block;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+        button, a, input {
+            background-color: #353535;
+            color: #ffffff;
+            border: 1px solid #444;
+            border-radius: 3px;
+            padding: 5px 10px;
+            margin-right: 5px;
+        }
+
+        button {
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        input[type="submit"] {
+            cursor: pointer;
+        }
+
+        .task-section, .command-section {
+            margin-bottom: 20px;
+        }
+
+        .task-section select, .task-section button {
+            background-color: #353535;
+            color: #ffffff;
+            border: 1px solid #444;
+            border-radius: 3px;
+            padding: 5px 10px;
+            margin-right: 5px;
+        }
+
+        .log-section {
+            background-color: #2b2b2b;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .log-section table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .log-section table th, .log-section table td {
+            border: 1px solid #444;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .log-section table th {
+            background-color: #353535;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Remoter</h1>
+            <a href="{{ url_for('configure_devices') }}">Configure devices</a>
+        </div>
+        {% if context.errors %}
+            {% for error in context.errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        {% endif %}
+        <form action="/" method="POST">
+            {{ form_run.csrf_token }}
+            <input type="hidden" name="form_type" value="run_command">
+            <div class="pc-list">
+                <ul>
+                    {% if not context.pc_list %}
+                        Configure your first device
+                    {% else %}
+                        {% for pc in context.pc_list %}
+                            <li>
+                                <input type="checkbox" name="ip_{{ pc }}" {% if pc in context.selected_ips %}checked{% endif %}>
+                                {% if context.pc_list[pc]['is_online'] %}
+                                    <span class="online green" id="ip_{{ pc }}_indicator"></span>
+                                {% else %}
+                                    <span class="online red" id="ip_{{ pc }}_indicator"></span>
+                                {% endif %}
+                                <div class="pc-info">
+                                    <span class="ip-address">
+                                        {% if context.pc_list[pc]['os_type'] == 'Windows' %}
+                                            <i class="fa-brands fa-windows"></i>
+                                        {% elif context.pc_list[pc]['os_type'] == 'Linux' %}
+                                            <i class="fa-brands fa-linux"></i>
+                                        {% elif context.pc_list[pc]['os_type'] == 'MacOS' %}
+                                            <i class="fa-brands fa-apple"></i>
+                                        {% endif %}
+                                        {{ pc }}
+                                    </span>
+                                    {% if context.pc_list[pc]['device_name'] %}
+                                        <span class="pc-name">{{ context.pc_list[pc]['device_name'] }}</span>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    {% endif %}
+                    <!--            <li><span class="red"></span> 192.168.0.9</li>-->
+                </ul>
+                <div class="buttons-container">
+    <!--                <button>Select All</button>-->
+    <!--                <input type="button" name="btn" value="Inverse">-->
+                    <button type="button" id="status_reload">Reload status</button>
+                    <button type="button" id="select-all">Select all</button>
+                    <button type="button" id="deselect-all">Deselect all</button>
+                </div>
+            </div>
+
+
+
+            <div class="task-section">
+    <!--            <select>-->
+    <!--                <option>Run Notepad</option>-->
+    <!--                &lt;!&ndash; Additional tasks can go here &ndash;&gt;-->
+    <!--            </select>-->
+
+                <input type="text" name="command" value="ping localhost" placeholder="Your command:">
+                <input type="submit" name="btn" value="Start">
+    <!--            <input type="submit" name="btn" value="Restart">-->
+    <!--            <input type="submit" name="btn" value="Kill">-->
+            </div>
+
+            <div class="command-section">
+                <input type="submit" name="btn" value="Wake On LAN">
+                <input type="submit" name="btn" value="Reboot">
+                <input type="submit" name="btn" value="Shutdown">
+                <input type="submit" name="btn" value="Delete Selected">
+            </div>
+        </form>
+
+        <div class="log-section">
+            <form method="POST">
+                <input type="hidden" name="form_type" value="clear_tasks">
+                <input type="submit" name="btn" value="Clear">
+            </form>
+            <table>
+                <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>PC</th>
+                    <th>PID</th>
+                    <th>Command line</th>
+                </tr>
+                </thead>
+                <tbody>
+                    {% for task in context.tasks %}
+                        <tr>
+                            <td>{{ task.time }}</td>
+                            <td>{{ task.ip }}</td>
+                            <td>{{ task.pid }}</td>
+                            <td>{{ task.command }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script type="text/javascript">
+        selectAllButton = document.getElementById("select-all");
+        selectAllButton.onclick = function() {
+        var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = true;
+            });
+        };
+
+        deselectAllButton = document.getElementById("deselect-all");
+        deselectAllButton.onclick = function() {
+        var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = false;
+            });
+        };
+
+
+        var status_reload_btn = document.getElementById("status_reload");
+        status_reload_btn.onclick = async function() {
+            console.log(1);
+            let checked_boxes = [...document.querySelectorAll('.pc-list input:checked')];
+            let checked_ips = checked_boxes.map(el => {return 'ips=' + el.name.substring(3);});
+            if (checked_ips.length == 0) {
+                return;
+            }
+
+            // Добавляем троеточие к кнопке перед отправкой запроса
+            status_reload_btn.textContent = 'Reloading...';
+            status_reload_btn.disabled = true; // Отключаем кнопку, чтобы предотвратить повторную отправку запроса
+
+            let status_reload_url = '{{ url_for('fetch_online') }}' + '?';
+            status_reload_url += checked_ips.join('&');
+            let response = await fetch(status_reload_url);
+            let new_statuses = await response.json();
+            console.log(new_statuses);
+            let all_boxes = [...document.querySelectorAll('.pc-list input')];
+            all_boxes.forEach(box => {
+                let box_ip = box.name.substring(3)
+                if (box_ip in new_statuses) {
+                    let ip_span = box.parentElement.children[1];
+                    if (new_statuses[box_ip]) {
+                        ip_span.classList.remove('red');
+                        ip_span.classList.add('green');
+                    }
+                    else {
+                        ip_span.classList.remove('green');
+                        ip_span.classList.add('red');
+                    }
+                }
+            });
+
+            // Возвращаем исходный текст кнопки после получения ответа
+            status_reload_btn.textContent = 'Reload status';
+            status_reload_btn.disabled = false; // Включаем кнопку обратно
+        }
+    </script>
+</body>
+</html>

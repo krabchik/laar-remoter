@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devices</title>
+    <script src="https://kit.fontawesome.com/c50d3eb7f8.js" crossorigin="anonymous"></script>
+    <style>
+        body {
+            background-color: #1b1b1b;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #252525;
+            border-radius: 5px;
+            gap: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        button[type="submit"] {
+            margin-bottom: 1rem;
+        }
+
+        .device {
+            background-color: #2b2b2b;
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #353535;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: column;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .device-info {
+            max-width: 30%;
+            text-align: center;
+            color: #ffffff;
+        }
+
+        .device-edit {
+            display: none;
+        }
+
+        .device-edit fieldset {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .device-edit.show {
+            display: flex;
+            align-items: column;
+        }
+
+        button, a {
+            background-color: #353535;
+            color: #ffffff;
+            border: 1px solid #444;
+            border-radius: 3px;
+            padding: 5px 10px;
+            margin-right: 5px;
+        }
+
+        input {
+            background-color: #353535;
+            color: #ffffff;
+            border: 1px solid #444;
+            border-radius: 3px;
+            padding: 5px;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Devices</h1>
+            <a href="{{ url_for('index') }}">Remoter</a>
+        </div>
+        <div>
+            <form method="POST" action="{{ url_for('configure_devices') }}">
+                {{ form_ip.csrf_token }}
+                <input type="hidden" name="form_type" value="add_ip">
+                <input type="text" id='ip-ip' name='ip-ip' placeholder="192.168.1.1">
+                <button name='btn' type="submit">Add PC <i class="fa-solid fa-house-signal"></i></button>
+            </form>
+            {% if form_ip.ip.errors %}
+                <ul class="errors">
+                    {% for error in form_ip.ip.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+        {% if devices %}
+        <div>
+            <form id="device-form" action="/configure" method="post" enctype="multipart/form-data">
+                {{ form.csrf_token }}
+                <input type="hidden" name="form_type" value="edit_devices">
+                <button type="submit">Save</button>
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        {% for message in messages %}
+                            {{ message }}
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                {% for ip, device in devices.items() %}
+                    <div class="device">
+                        <div class="device-info">
+                            <h2>{{ ip }} {{ device.name or '' }}
+                                <span>
+                                    {% if device.os_type == 'Windows' %}
+                                        <i class="fa-brands fa-windows"></i>
+                                    {% elif device.os_type == 'Linux' %}
+                                        <i class="fa-brands fa-linux"></i>
+                                    {% elif device.os_type == 'MacOS' %}
+                                        <i class="fa-brands fa-apple"></i>
+                                    {% endif %}
+                                </span>
+                            </h2>
+                            <p>Connect type: {{ device.connect_type or 'unknown' }}</p>
+                            {% if device.device_name %}
+                                <p>Device name: {{ device.device_name or 'unknown' }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="device-edit" data-ip="{{ ip }}">
+                            <fieldset id="{{ ip }}-fields" style="border: none;" disabled>
+                                {{ form.devices[loop.index0].device_id(value=loop.index0) }}
+                                {{ form.devices[loop.index0].ip }}
+                                <div class="field">
+                                    {{ form.devices[loop.index0].device_name.label }}
+                                    {{ form.devices[loop.index0].device_name }}
+                                </div>
+                                <div class="field">
+                                    {{ form.devices[loop.index0].username.label }}
+                                    {{ form.devices[loop.index0].username }}
+                                </div>
+                                <div class="field">
+                                    {{ form.devices[loop.index0].password.label }}
+                                    {{ form.devices[loop.index0].password }}
+                                </div>
+        <!--                            <input type="text" name="{{ ip }}-name" id="{{ ip }}-name" value="{{ device.name or '' }}" placeholder="Name">-->
+        <!--                            <input type="text" name="{{ ip }}-username" id="{{ ip }}-username" value="{{ device.username or '' }}" placeholder="Username">-->
+        <!--                            <input type="password" name="{{ ip }}-password" id="{{ ip }}-password" value="{{ device.password or '' }}" placeholder="Password">-->
+                                {% if device.os_type == 'Windows' %}
+                                    <div class="field">
+                                        {{ form.devices[loop.index0].connect_type.label }}
+                                        {{ form.devices[loop.index0].connect_type }}
+                                    </div>
+                                {% endif %}
+                                {% if device.connect_type == 'ssh' %}
+                                    <div class="field">
+                                        {{ form.devices[loop.index0].ssh_use_key.label }}
+                                        {{ form.devices[loop.index0].ssh_use_key }}
+                                    </div>
+                                    <div class="field">
+                                        {{ form.devices[loop.index0].ssh_port.label }}
+                                        {{ form.devices[loop.index0].ssh_port }}
+                                    </div>
+                                    <div class="field">
+                                        {{ form.devices[loop.index0].ssh_key.label }} {{ form.devices[loop.index0].ssh_key }}
+                                    </div>
+                                {% endif %}
+                            </fieldset>
+                        </div>
+                        <div class="device-buttons">
+                            <button type="button" class="toggle-btn" data-ip="{{ ip }}">Edit</button>
+<!--                            <button type="submit" data-ip="{{ ip }}">Delete</button>-->
+                        </div>
+                    </div>
+                {% endfor %}
+            </form>
+        </div>
+        {% endif %}
+    </div>
+    <script>
+    const toggleBtns = document.querySelectorAll('.toggle-btn');
+
+    toggleBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const ip = btn.dataset.ip;
+            const deviceEdit = document.querySelector(`.device-edit[data-ip="${ip}"]`);
+            deviceEdit.classList.toggle('show');
+            deviceEdit.querySelector('fieldset').disabled = !deviceEdit.querySelector('fieldset').disabled;
+            btn.textContent = deviceEdit.classList.contains('show') ? 'Close' : 'Edit';
+        });
+    });
+    </script>
+</body>
+</html>
