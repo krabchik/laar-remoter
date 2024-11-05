@@ -5,6 +5,9 @@ https://www.toptal.com/developers/gitignore?templates=jetbrains,python,jetbrains
 
 # Projects
 
+keys/
+data.yaml
+
 temporary/
 
 pretrained_models/
