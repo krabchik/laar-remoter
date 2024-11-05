@@ -542,11 +542,19 @@ def shutdown(ip, saved_data, reboot=False):
                         raise ValueError(f'Error shutting down: {proc.stderr.strip()}')
                     raise ValueError('Error shutting down')
             elif os_type == 'Linux':
-                print(conn.run('shutdown', hide=True, warn=True))
+                if reboot:
+                    print(conn.run('shutdown -r now', hide=True, warn=True))
+                else:
+                    print(conn.run('shutdown now', hide=True, warn=True))
             elif os_type == 'MacOS':
-                print(conn.run('shutdown', hide=True, warn=True))
+                if reboot:
+                    print(conn.run('shutdown -r now', hide=True, warn=True))
+                else:
+                    print(conn.run('shutdown -h now', hide=True, warn=True))
     elif connect_type == 'paexec':
         shutdown_paexec(ip, username='Honor', password='1234', reboot=reboot)
+    else:
+        raise ValueError('Unknown connect type')
     
 
 
