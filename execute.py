@@ -33,7 +33,7 @@ def is_ip_online(ip: str) -> bool:
     online = False
     with open(file_name, mode='r') as file:
         ping_output = file.read()
-    if 'TTL=' in ping_output:
+    if 'ttl=' in ping_output.lower():
         online = True
     file = Path(file_name)
     file.unlink(missing_ok=True)
@@ -56,7 +56,7 @@ async def async_is_ip_online(ip: str) -> bool:
     online = False
     async with aiofiles.open(file_name, mode='r') as file:
         ping_output = await file.read()
-    if 'TTL=' in ping_output:
+    if 'ttl=' in ping_output.lower():
         online = True
     file = Path(file_name)
     file.unlink(missing_ok=True)
