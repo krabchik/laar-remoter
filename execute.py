@@ -229,10 +229,6 @@ def start_process_ssh(conn: Connection, command: str, os_type):
         # Without PID
         ssh_command = f'schtasks /create /tn "Laar-{temp_name}" /sc once /st 00:00 /f /tr "cmd.exe /C """cd %userprofile% ^&^& {command}""" " && schtasks /run /tn "Laar-{temp_name}"'
 
-        # ssh_command = f'schtasks /create /tn "Laar-{temp_name}" /tr "powershell -Command """echo (Start-Process """notepad""" -PassThru).id ^> """\\AppData\\Local\\Temp\\Laar-{temp_name}.txt""""" /sc once /st 00:00 /f >nul 2>&1 && schtasks /run /tn "Laar-{temp_name}" >nul 2>&1 && ping localhost -n 2 >nul 2>&1 && type \\AppData\\Local\\Temp\\Laar-{temp_name}.txt'
-        # ssh_command = f'schtasks /create /tn "Laar-{temp_name}" /tr "powershell -Command """echo (Start-Process """notepad""" -PassThru).id ^> """\\AppData\\Local\\Temp\\Laar-{temp_name}.txt""""" /sc once /st 00:00 /f && schtasks /run /tn "Laar-{temp_name}" && type \\AppData\\Local\\Temp\\Laar-{temp_name}.txt'
-        # ssh_command = f'powershell -Command "$title = "Your Title Here"; $command = "notepad.exe"; $StartInfo = New-Object System.Diagnostics.ProcessStartInfo; $StartInfo.FileName = "powershell.exe"; $StartInfo.Arguments = "-NoExit -Command `$Host.UI.RawUI.WindowTitle=\'$title\'; Start-Process $command -PassThru | Out-Null; Start-Sleep -Seconds 1; Get-Process -Name $(($command -split \'\.\')[0]) | Select-Object -First 1 -ExpandProperty Id"; $StartInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden; [System.Diagnostics.Process]::Start($StartInfo)"'
-        # ssh_command = f'set "RANDOM_NAME={random_name}" && start "MyApp-{random_name}" notepad.exe && tasklist /v | findstr {random_name}'
         print(ssh_command)
         response = conn.run(ssh_command, hide=True, warn=True, encoding='cp866')
         print('RESPONSE re_code:', response.return_code)
@@ -359,49 +355,6 @@ def kill_process_ssh(conn: Connection, pid: str, os_type: str):
         else:
             raise ValueError('Error killing process')
     return
-
-
-def extract_digits(byte_sequence):
-    # Преобразование байтовой последовательности в строку
-    string = byte_sequence.decode('utf-8', errors='ignore')
-
-    # Поиск всех цифр в строке
-    digits = re.findall(r'\d+', string)
-
-    return digits
-
-
-def get_pid(remote_ip, username, password, process_name):
-    # Команда для получения списка процессов на удалённой машине
-    tasklist_command = [
-        'paexec.exe', '\\\\' + remote_ip,
-        # '-u', username,
-        # '-p', password,
-        'tasklist'
-    ]
-
-    process = subprocess.Popen('chcp', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    output, error = process.communicate()
-    print('1 output:', output)
-    print('1 error:', error)
-    codepage = extract_digits(output)[0]
-    process = subprocess.Popen(tasklist_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True,
-                               # )
-                               errors='ignore')
-    output, error = process.communicate()
-    print('2 output:', repr(output))
-    print('2 type:', type(output))
-    print('2 error:', error)
-    if process.returncode == 0:
-        # Поиск PID процесса по имени
-        for line in output.split('\n\n'):
-            if process_name in line:
-                parts = line.split()
-                pid = parts[1]  # PID обычно находится во втором столбце
-                return int(pid)
-    else:
-        print(f"Error retrieving process list: {error}")
-        return None
 
 
 def kill_process_paexec(remote_ip, username, password, pid):
