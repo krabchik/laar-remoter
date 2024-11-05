@@ -15,6 +15,22 @@ from paramiko.ssh_exception import NoValidConnectionsError, SSHException
 
 from data import is_ip_valid, save_data, get_data_dict
 
+OS_TYPE = os.name
+OS_WINDOWS = 'nt'
+OS_POSIX = 'posix'
+
+
+def get_ping_command(ip: str, count: int = 1, file_name: str = None) -> str:
+    if OS_TYPE == OS_WINDOWS:
+        ping_command = f'ping -n {count} {ip}'
+    elif OS_TYPE == OS_POSIX:
+        ping_command = f'ping -c {count} {ip}'
+    else:
+        raise ValueError(f'Running on unknown OS')
+    if file_name is not None:
+        ping_command += f' > {file_name}'
+    return ping_command
+
 
 def get_tempfile() -> str:
     with tempfile.NamedTemporaryFile(delete=False) as file:
@@ -27,7 +43,10 @@ def is_ip_online(ip: str) -> bool:
     if not is_ip_valid(ip):
         print('invalid ip')
         return False
-    proc = subprocess.run(f'ping {ip} -c 2 > {file_name}', shell=True, stdout=subprocess.PIPE)
+
+    ping_command = get_ping_command(ip, count=2, file_name=file_name)
+    proc = subprocess.run(ping_command, shell=True, stdout=subprocess.PIPE)
+
     if proc.returncode:
         return False
     online = False
@@ -45,8 +64,10 @@ async def async_is_ip_online(ip: str) -> bool:
     if not is_ip_valid(ip):
         print('invalid ip')
         return False
+
+    ping_command = get_ping_command(ip, count=2, file_name=file_name)
     proc = await asyncio.create_subprocess_shell(
-        f'ping {ip} -c 2 > {file_name}',
+        ping_command,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE
     )
@@ -64,8 +85,10 @@ async def async_is_ip_online(ip: str) -> bool:
 
 
 def get_mac(ip_address):
+
+    ping_command = get_ping_command(ip_address, count=1)
     # Пингуем устройство, чтобы обновить ARP таблицу
-    ping_response = subprocess.run(f"ping -c 1 {ip_address}", shell=True, stdout=subprocess.PIPE).returncode
+    ping_response = subprocess.run(ping_command, shell=True, stdout=subprocess.PIPE).returncode
 
     if ping_response == 0:
         # Используем команду arp для получения MAC-адреса
