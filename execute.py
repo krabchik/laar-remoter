@@ -206,7 +206,7 @@ def get_connection(host: str, username: str, password: str = None, ssh_key: str 
     elif ssh_use_key and ssh_key:
         ssh_key_path = os.path.join(os.getcwd(), 'keys', host, ssh_key)
         if not os.path.exists(ssh_key_path):
-            raise ValueError(f"SSH key {ssh_key} not found")
+            raise ValueError(f"SSH: key {ssh_key} not found")
         conn = Connection(host=host, user=username, connect_kwargs={"key_filename": ssh_key_path})
     else:
         raise ValueError("Must provide either password or SSH key")
@@ -214,15 +214,16 @@ def get_connection(host: str, username: str, password: str = None, ssh_key: str 
     try:
         conn.open()
     except NoValidConnectionsError as e:
-        raise ValueError(f'Connect error: {e}')
+        raise ValueError(f'SSH error: {e}')
     except AuthenticationException as e:
         if ssh_use_key:
-            raise ValueError(f'Authentication failed: key auth failed')
+            raise ValueError(f'SSH authentication failed: key auth failed')
         elif password:
-            raise ValueError(f'Authentication failed: password auth failed')
-    except ValueError:
-        if not password and ssh_key:
-            raise ValueError(f'Connect error: No user {username} or key auth failed')
+            raise ValueError(f'SSH authentication failed: password auth failed')
+        raise ValueError(f'SSH authentication failed: {e}')
+    except ValueError as e:
+        if ssh_use_key and ssh_key:
+            raise ValueError(f'SSH error: Key auth failed for user "{username}"')
         elif password:
             raise ValueError(f'Connect error: No user {username}')
     return conn
@@ -528,7 +529,7 @@ def shutdown(ip, saved_data, reboot=False):
             if os_type == 'Windows':
                 print('is windows')
                 if reboot:
-                    shutdown_command = 'shutdown /r /t 5'
+                    shutdown_command = 'shutdown /g /t 5'
                 else:
                     shutdown_command = 'shutdown /s /t 5'
                 proc = conn.run(shutdown_command, warn=True, hide=True, encoding='cp866')
