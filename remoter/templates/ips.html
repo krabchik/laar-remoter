@@ -158,7 +158,7 @@
                                 </div>
                                 <div class="field">
                                     {{ form.devices[loop.index0].password.label }}
-                                    {{ form.devices[loop.index0].password }}
+                                    <input type="password" id="form.devices[loop.index0].password.id" name="{{ form.devices[loop.index0].password.name }}" value="{{ device.password or '' }}" placeholder="Password">
                                 </div>
         <!--                            <input type="text" name="{{ ip }}-name" id="{{ ip }}-name" value="{{ device.name or '' }}" placeholder="Name">-->
         <!--                            <input type="text" name="{{ ip }}-username" id="{{ ip }}-username" value="{{ device.username or '' }}" placeholder="Username">-->
