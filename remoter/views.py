@@ -27,7 +27,6 @@ async def index():
     form_run.ip_addresses.choices = ip_list
 
     if request.method == 'POST':
-        print(request.form)
         if request.form['form_type'] == 'run_command':
             for field_name in request.form.to_dict():
                 if field_name.startswith('ip_'):
@@ -43,16 +42,13 @@ async def index():
             if errors:
                 context['selected_ips'] = selected_ips
                 return render_template('index.html', context=context, form_run=form_run)
-            print('selected ips:', selected_ips)
 
             if request.form['btn'] == 'Delete Selected':
-                print('deleting ips:', selected_ips)
                 for ip in selected_ips:
                     if ip in saved_data['ips']:
                         saved_data['ips'].pop(ip)
                 save_data(saved_data)
             elif request.form['btn'] == 'Wake On LAN':
-                print('waking', selected_ips)
                 for ip in selected_ips:
                     wake_on_lan(ip)
             else:
@@ -66,7 +62,6 @@ async def index():
                     else:
                         errors.append(f'{ip} не в сети')
 
-                print('online ips:', online_ips)
                 selected_ips = online_ips
                 context['selected_ips'] = selected_ips
 
@@ -82,7 +77,6 @@ async def index():
                             try:
                                 pid = start_process(command, saved_data, ip)
                             except Exception as e:
-                                print(e)
                                 errors.append(f'{ip}: {e}')
                             else:
                                 time_obj = time.localtime()  # получить struct_time
@@ -91,28 +85,22 @@ async def index():
                                                             'pid': pid, 'time': time_string, 'type': 'run'})
                         save_data(saved_data)
                 elif request.form['btn'] == 'Shutdown':
-                    print('shutting down')
                     for ip in selected_ips:
                         if not is_ip_online(ip):
-                            print('not online:', ip)
                             errors.append(f'{ip}: not online')
                             continue
                         try:
                             shutdown(ip, saved_data)
                         except Exception as e:
-                            print(e)
                             errors.append(f'{ip}: {e}')
                 elif request.form['btn'] == 'Reboot':
-                    print('rebooting')
                     for ip in selected_ips:
                         if not is_ip_online(ip):
-                            print(f'{ip} not online')
                             errors.append(f'{ip}: not online')
                             continue
                         try:
-                            print(shutdown(ip, saved_data, reboot=True))
+                            shutdown(ip, saved_data, reboot=True)
                         except Exception as e:
-                            print(e)
                             errors.append(f'{ip}: {e}')
         elif request.form['form_type'] == 'clear_tasks' and request.form['btn'] == 'Clear':
             saved_data['tasks'] = []
@@ -126,7 +114,6 @@ async def index():
 @app.route('/api/fetch-online')
 async def fetch_online():
     ip_list = request.args.getlist('ips')
-    print('fetching ips', ip_list)
     online_check_tasks = [async_is_ip_online(ip) for ip in ip_list]
     online_check_results = await asyncio.gather(*online_check_tasks)
     saved_data = get_data_dict()
@@ -151,7 +138,6 @@ def configure_devices():
                 else:
                     if is_ip_online(ip):
                         mac = get_mac(ip)
-                        print('got mac', mac)
                         if mac is not None:
                             saved_data['ips'][ip]['mac'] = mac
                     save_data(saved_data)
@@ -181,10 +167,8 @@ def configure_devices():
                 if device['ssh_key']:
                     saved_data['ips'][ip]['ssh_key'] = device['ssh_key'].filename
                     Path(f"keys/{device['ip']}").mkdir(parents=True, exist_ok=True)
-                    print(1)
                     ssh_key_path = os.path.join(os.getcwd(), 'keys', ip, device['ssh_key'].filename)
                     device['ssh_key'].save(ssh_key_path)
-                    print(2)
             flash("Device configuration updated successfully.", category='info')
         save_data(saved_data)
 

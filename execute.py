@@ -41,7 +41,6 @@ def get_tempfile() -> str:
 def is_ip_online(ip: str) -> bool:
     file_name = get_tempfile()
     if not is_ip_valid(ip):
-        print('invalid ip')
         return False
 
     ping_command = get_ping_command(ip, count=2, file_name=file_name)
@@ -62,7 +61,6 @@ def is_ip_online(ip: str) -> bool:
 async def async_is_ip_online(ip: str) -> bool:
     file_name = get_tempfile()
     if not is_ip_valid(ip):
-        print('invalid ip')
         return False
 
     ping_command = get_ping_command(ip, count=2, file_name=file_name)
@@ -77,6 +75,7 @@ async def async_is_ip_online(ip: str) -> bool:
     online = False
     async with aiofiles.open(file_name, mode='r') as file:
         ping_output = await file.read()
+
     if 'ttl=' in ping_output.lower():
         online = True
     file = Path(file_name)
@@ -115,18 +114,14 @@ def wake_on_lan(ip_address: str) -> bool:
     else:
         mac_address = get_mac(ip_address)
         if not mac_address:
-            print('no mac')
             return False
         else:
             saved_data['ips'][ip_address]['mac'] = mac_address
             save_data(saved_data)
-    print(ip_address, mac_address)
     try:
         send_magic_packet(mac_address)
-        print('sent to', ip_address)
         return True
     except Exception as e:
-        print(e)
         return False
 
 
@@ -149,9 +144,7 @@ def start_process_paexec(remote_ip, username, password, command, interactive=Fal
         '-lo', file_name,  # -lo сохраняет стандартный вывод в файл
         *shlex.split(command)
     ]
-    print('paexec command', paexec_command)
     process = subprocess.run(paexec_command, stdout=subprocess.PIPE)
-    print(process)
     with open(file_name, mode='r', encoding='utf-8') as file_with_data:
         text = file_with_data.read()
         pid = re.findall('started with process ID (\\d+)', text)
@@ -164,7 +157,7 @@ def start_process_paexec(remote_ip, username, password, command, interactive=Fal
     else:
         error = re.findall('Returned error:\n  ([a-zA-Zа-яА-Я ."]+) ', text)
         if error and len(error) == 1:
-            print(f"Error starting process: {error[0]}")
+            raise ValueError(f'Paexec: {error[0]}')
         return None
 
 
@@ -200,7 +193,6 @@ def get_connection(host: str, username: str, password: str = None, ssh_key: str 
     """
     if not port:
         port = 22
-    print(ssh_use_key, password, ssh_key)
     if not ssh_use_key and password:
         conn = Connection(host=host, user=username, connect_kwargs={"password": password}, port=port)
     elif ssh_use_key and ssh_key:
@@ -209,8 +201,7 @@ def get_connection(host: str, username: str, password: str = None, ssh_key: str 
             raise ValueError(f"SSH: key {ssh_key} not found")
         conn = Connection(host=host, user=username, connect_kwargs={"key_filename": ssh_key_path})
     else:
-        raise ValueError("Must provide either password or SSH key")
-
+        raise ValueError("SSH: Must provide either password or SSH key")
     try:
         conn.open()
     except NoValidConnectionsError as e:
@@ -225,7 +216,8 @@ def get_connection(host: str, username: str, password: str = None, ssh_key: str 
         if ssh_use_key and ssh_key:
             raise ValueError(f'SSH error: Key auth failed for user "{username}"')
         elif password:
-            raise ValueError(f'Connect error: No user {username}')
+            raise ValueError(f'SSH error: Password auth failed for user "{username}"')
+        raise ValueError(f'SSH error: {e} for "{username}"')
     return conn
 
 
@@ -315,7 +307,6 @@ def start_process_ssh(conn: Connection, command: str, os_type):
     ssh_command = None
     if os_type == 'Windows':
         user_response = conn.run('query user', hide=True, warn=True, encoding='cp866')
-        print('user respinse', user_response)
         if conn.user not in user_response.stdout:
             raise ValueError(f'Login as {conn.user} in system first')
 
@@ -324,15 +315,10 @@ def start_process_ssh(conn: Connection, command: str, os_type):
         # Without PID
         ssh_command = f'schtasks /create /tn "Laar-{temp_name}" /sc once /st 00:00 /f /tr "cmd.exe /C """cd %userprofile% ^&^& {command}""" " && schtasks /run /tn "Laar-{temp_name}"'
 
-        print(ssh_command)
         response = conn.run(ssh_command, hide=True, warn=True, encoding='cp866')
-        print('RESPONSE re_code:', response.return_code)
-        print('RESPONSE stdout:', response.stdout)
-        print('RESPONSE stderr:', response.stderr)
         if response.return_code or response.stderr:
             if response.stderr.strip():
                 stderr = response.stderr.strip().split('\n')
-                print(stderr)
                 if not (len(stderr) == 1 and (stderr[0].startswith('Предупреждение') or stderr[0].startswith('Warning'))):
                     raise ValueError('Error starting process: ' + response.stderr.strip())
             elif response.stdout.strip():
@@ -346,7 +332,6 @@ def start_process_ssh(conn: Connection, command: str, os_type):
         pid = ''
     else:
         if os_type == 'Linux':
-            print('running on Linux: ', command)
             ssh_command = f'nohup {command} > /dev/null 2>&1 & echo $!'
         elif os_type == 'MacOS':
             ssh_command = f'osascript -e \'tell application "{command}" to activate\' & echo $!'
@@ -397,7 +382,6 @@ def start_process(command: str, saved_data: dict, ip: str) -> int:
     connect_type = saved_data['ips'][ip]['connect_type']
     ssh_port = saved_data['ips'][ip]['ssh_port']
     pid = None
-    print(os_type, username, password, ssh_key, connect_type)
     if not username or not password and not ssh_key:
         raise ValueError('Configure device')
     if connect_type == 'ssh':
@@ -475,7 +459,6 @@ def kill_process_paexec(remote_ip, username, password, pid):
     ]
     process = subprocess.run(paexec_command, capture_output=True)
     if process.returncode == 0:
-        print(f"Process PID {pid} stopped successfully")
         return True
     elif process.returncode == 128:
         raise ValueError(f"Error stopping process PID {pid}: process not found")
@@ -514,7 +497,6 @@ def shutdown(ip, saved_data, reboot=False):
     if not username or not password and not ssh_key:
         raise ValueError('Configure device')
     if connect_type == 'ssh':
-        print('is ssh')
         # try:
         with get_connection(ip, username,
                             password=password,
@@ -527,13 +509,11 @@ def shutdown(ip, saved_data, reboot=False):
                 saved_data['ips'][ip]['device_name'] = device_name
                 save_data(saved_data)
             if os_type == 'Windows':
-                print('is windows')
                 if reboot:
                     shutdown_command = 'shutdown /g /t 5'
                 else:
                     shutdown_command = 'shutdown /s /t 5'
                 proc = conn.run(shutdown_command, warn=True, hide=True, encoding='cp866')
-                print(proc)
                 if proc.return_code:
                     if proc.return_code == 5:
                         raise ValueError(f'Error shutting down: User has to be admin')
@@ -544,14 +524,14 @@ def shutdown(ip, saved_data, reboot=False):
                     raise ValueError('Error shutting down')
             elif os_type == 'Linux':
                 if reboot:
-                    print(conn.run('shutdown -r now', hide=True, warn=True))
+                    conn.run('shutdown -r now', hide=True, warn=True)
                 else:
-                    print(conn.run('shutdown now', hide=True, warn=True))
+                    conn.run('shutdown now', hide=True, warn=True)
             elif os_type == 'MacOS':
                 if reboot:
-                    print(conn.run('shutdown -r now', hide=True, warn=True))
+                    conn.run('shutdown -r now', hide=True, warn=True)
                 else:
-                    print(conn.run('shutdown -h now', hide=True, warn=True))
+                    conn.run('shutdown -h now', hide=True, warn=True)
     elif connect_type == 'paexec':
         shutdown_paexec(ip, username='Honor', password='1234', reboot=reboot)
     else:
@@ -577,4 +557,3 @@ def shutdown_paexec(remote_ip, username='', password='', reboot=False):
     if reboot:
         paexec_command += ['-r']
     process = subprocess.run(paexec_command, stdout=subprocess.PIPE)
-    print(process.returncode)
