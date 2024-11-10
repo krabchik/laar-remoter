@@ -20,7 +20,7 @@ COPY data.py data.py
 COPY execute.py execute.py
 
 # For debug
-COPY data.yaml data.yaml
+# COPY data.yaml data.yaml
 
 EXPOSE 5000
 
