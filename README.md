@@ -1,3 +1,6 @@
+# Laar Remoter App
+Add devices by IP, set their credentials to run commands or shutdown/reboot/wake up (via WakeOnLan) on your devices. Supports SSH and PAExec (if run under Windows)
+
 ## Запуск в Docker <br>
 `docker build -t laar-app-remoter .` <br>
 `docker run -p 5000:5000 --network=host laar-app-remoter` <br>
