@@ -25,4 +25,4 @@ COPY execute.py execute.py
 EXPOSE 5000
 
 # Run the command to start the application when the container launches
-CMD ["flask", "--app", "remoter:app", "run", "--host=0.0.0.0"]
+CMD ["flask", "--app", "remoter:app", "run", "--host=0.0.0.0", "--port=5000"]
